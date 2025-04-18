@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bank Login System</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Login -->
+    <div id="loginForm" class="container">
+      <h3>Login</h3>
+      <input type="text" id="login_username" placeholder="Username" /><br />
+      <input type="password" id="login_password" placeholder="Password" /><br />
+      <button onclick="login()">Login</button>
+      <p>
+        Don't have an account?
+        <a href="#" onclick="showRegister()">Register here</a>
+      </p>
+    </div>
+
+    <!-- Register -->
+    <div id="registerForm" class="container hidden">
+      <h3>Register</h3>
+      <input type="text" id="register_username" placeholder="Username" /><br />
+      <input
+        type="password"
+        id="register_password"
+        placeholder="Password"
+      /><br />
+      <button onclick="register()">Register</button>
+      <p>
+        Already have an account?
+        <a href="#" onclick="showLogin()">Login here</a>
+      </p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+      <h3>Welcome!</h3>
+      <label><strong>Account number:</strong></label
+      ><br />
+      <input type="text" id="account_number" /><br /><br />
+      <label><strong>Amount:</strong></label
+      ><br />
+      <input type="number" id="amount" /><br /><br />
+      <button onclick="performTransaction('deposit')">Deposit</button>
+      <button onclick="performTransaction('withdraw')">Withdraw</button>
+      <button onclick="performTransaction('balance')">Check Balance</button
+      ><br /><br />
+      <p id="balance">Balance: $0</p>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <script>
+      // Show login/register
+      function showRegister() {
+        document.getElementById("loginForm").classList.add("hidden");
+        document.getElementById("registerForm").classList.remove("hidden");
+      }
+
+      function showLogin() {
+        document.getElementById("registerForm").classList.add("hidden");
+        document.getElementById("loginForm").classList.remove("hidden");
+      }
+
+      function showDashboard() {
+        document.getElementById("loginForm").classList.add("hidden");
+        document.getElementById("registerForm").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+      }
+
+      // Login
+      function login() {
+        const username = document.getElementById("login_username").value;
+        const password = document.getElementById("login_password").value;
+
+        let formData = new FormData();
+        formData.append("action", "login");
+        formData.append("username", username);
+        formData.append("password", password);
+
+        fetch("http://localhost/bank/bank.php", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            alert(data.message);
+            if (data.success) {
+              localStorage.setItem("loggedIn", "true");
+              showDashboard();
+            }
+          });
+      }
+
+      // Register
+      function register() {
+        const username = document.getElementById("register_username").value;
+        const password = document.getElementById("register_password").value;
+
+        let formData = new FormData();
+        formData.append("username", username);
+        formData.append("password", password);
+
+        fetch("http://localhost/bank/register.php", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            alert(data.message);
+            if (data.success) {
+              showLogin();
+            }
+          });
+      }
+
+      // Logout
+      function logout() {
+        let formData = new FormData();
+        formData.append("action", "logout");
+
+        fetch("http://localhost/bank/bank.php", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            alert(data.message);
+            localStorage.removeItem("loggedIn");
+            location.reload();
+          });
+      }
+
+      // Perform deposit, withdraw, balance
+      function performTransaction(action) {
+        const account_number = document.getElementById("account_number").value;
+        const amount = document.getElementById("amount").value;
+
+        if (!account_number) {
+          alert("Enter account number");
+          return;
+        }
+
+        let formData = new FormData();
+        formData.append("action", action);
+        formData.append("account_number", account_number);
+        if (action !== "balance") {
+          formData.append("amount", amount);
+        }
+
+        fetch("http://localhost/bank/bank.php", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (action !== "balance") {
+              alert(data.message);
+            }
+            if (data.new_balance !== undefined) {
+              document.getElementById("balance").innerText =
+                "Balance: $" + data.new_balance;
+            } else if (data.balance !== undefined) {
+              document.getElementById("balance").innerText =
+                "Balance: $" + data.balance;
+            }
+          });
+      }
+
+      // Auto-login view if already logged in
+      window.onload = () => {
+        if (localStorage.getItem("loggedIn") === "true") {
+          showDashboard();
+        }
+      };
+    </script>
+  </body>
+</html>
